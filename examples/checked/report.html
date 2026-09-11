@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSV cleanup: messy_customers.csv</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f5f2;color:#192d35;font:16px/1.6 system-ui,sans-serif}
+main{max-width:900px;margin:64px auto;padding:0 24px}.eyebrow{color:#45666a;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.12;letter-spacing:-.04em;margin:14px 0 24px}h2{font-size:20px;margin-top:36px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:32px 0}.card{background:white;border:1px solid #dce2dc;border-radius:12px;padding:20px}
+.card strong{display:block;font-size:38px;line-height:1.2;font-variant-numeric:tabular-nums}.card span{display:block;font-size:13px;margin-top:8px;color:#4c6268}
+a{color:#17605d}code{font-size:13px;overflow-wrap:anywhere}.note{border-left:3px solid #598e79;padding:8px 16px;background:#e8eee7}
+dt{font-weight:650;margin-top:12px}dd{margin-left:0;color:#42575e}footer{margin-top:42px;border-top:1px solid #dce2dc;padding-top:18px;color:#627478;font-size:12px}
+@media(max-width:620px){main{margin:32px auto}.cards{grid-template-columns:repeat(2,1fr)}.card{padding:16px}}
+</style><main><div class="eyebrow">CSV cleanup / checked output</div>
+<h1>Every row accounted for.</h1><p>Source: <strong>messy_customers.csv</strong>. The source file was read, never edited.</p>
+<div class="cards"><div class="card"><strong>8</strong><span>Rows read</span></div><div class="card"><strong>5</strong><span>Ready</span></div><div class="card"><strong>1</strong><span>Duplicates removed</span></div><div class="card"><strong>2</strong><span>Need review</span></div></div>
+<p class="note">8 input rows = 5 ready + 1 duplicates + 2 for review.</p>
+<h2>Files to use</h2><dl>
+<dt><a href="cleaned.csv">cleaned.csv</a></dt><dd>Rows with the expected number of columns. Values stay text, including IDs with leading zeroes.</dd>
+<dt><a href="review.csv">review.csv</a></dt><dd>Rows with missing or extra cells, with their original values and source record number.</dd>
+<dt><a href="audit.jsonl">audit.jsonl</a></dt><dd>One event for each changed, removed or quarantined record.</dd>
+<dt><a href="summary.json">summary.json</a></dt><dd>Counts, settings and the source fingerprint.</dd></dl>
+<h2>What was applied</h2><p>Trim outer whitespace: <strong>yes</strong>.
+Remove exact duplicate rows: <strong>yes</strong>.
+Cells changed: <strong>3</strong>.</p>
+<p>Duplicates use every cell, after optional trimming. The first matching record is kept. No names, dates, numbers or currencies were inferred.</p>
+<footer>Source SHA-256<br><code>3355005ffb988694c23b1cee2c72b9c6ab2ae0972395273a13f06d1a0606946a</code></footer></main></html>

@@ -1,0 +1,2 @@
+# These are data fixtures: preserve CSV CRLF records and intentional cell spaces.
+*.csv -text -whitespace

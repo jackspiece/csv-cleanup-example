@@ -1,0 +1,5 @@
+{"source_record": 2, "action": "trimmed", "columns": ["name"]}
+{"source_record": 3, "action": "duplicate_removed", "kept_source_record": 2}
+{"source_record": 5, "action": "quarantined", "reason": "Expected 5 cells, found 2"}
+{"source_record": 7, "action": "quarantined", "reason": "Expected 5 cells, found 6"}
+{"source_record": 9, "action": "trimmed", "columns": ["total", "notes"]}

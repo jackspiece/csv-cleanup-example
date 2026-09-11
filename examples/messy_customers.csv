@@ -1,0 +1,10 @@
+customer_id,name,email,total,notes
+00017, Alice Nguyen ,alice@example.test,"1,204.50",Call after 3pm
+00017,Alice Nguyen,alice@example.test,"1,204.50",Call after 3pm
+00018,José Cruz,jose@example.test,000.00,"Line one
+Line two"
+00019,Kai
+00020,LEE,lee@example.test,£39.00,"Comma, inside quoted note"
+00099,Extra,extra@example.test,10,note,unexpected cell
+00021,空山,kongshan@example.test,$19.99,na
+00022,Sam,sam@example.test, 0042 ,  keep internal   spaces  

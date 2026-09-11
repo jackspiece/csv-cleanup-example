@@ -1,0 +1,18 @@
+{
+  "source": "messy_customers.csv",
+  "source_sha256": "3355005ffb988694c23b1cee2c72b9c6ab2ae0972395273a13f06d1a0606946a",
+  "columns": [
+    "customer_id",
+    "name",
+    "email",
+    "total",
+    "notes"
+  ],
+  "input_rows": 8,
+  "output_rows": 5,
+  "duplicate_rows": 1,
+  "review_rows": 2,
+  "changed_cells": 3,
+  "trim": true,
+  "deduplicate": true
+}
