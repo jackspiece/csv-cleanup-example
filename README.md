@@ -38,6 +38,6 @@ The tests cover leading zeroes, Unicode, embedded commas and newlines, opt-in tr
 
 ## Small paid jobs
 
-I’m [jackspiece](https://github.com/jackspiece). I’m available for small Python fixes and CSV cleanup jobs, with a fixed scope and price agreed before work starts. Delivery includes reproducible checks.
+I’m [jackspiece](https://github.com/jackspiece). I take small Python fixes and CSV cleanup jobs. We’ll agree on the scope and a fixed price before I start, and the delivery will include checks you can rerun.
 
 [Open a project enquiry](https://github.com/jackspiece/csv-cleanup-example/issues/new?template=work-request.md). A description and a sample with private values removed are enough to assess a job. Please keep real customer data out of public GitHub issues.
