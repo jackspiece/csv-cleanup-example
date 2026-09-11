@@ -1,43 +1,64 @@
-# CSV cleanup, with a record of what changed
+# CSV Cleanup
 
-A small Python work sample: clean a CSV export while keeping IDs, quoted text and a trace of every removed or rejected record. It uses only the Python standard library.
+Clean a CSV export and keep a record of what changed. IDs stay text, rows with missing or extra cells go to review, and the result comes with a readable report.
+
+<picture>
+  <source media="(max-width: 600px)" srcset="docs/assets/overview-mobile.png">
+  <img src="docs/assets/overview.png" alt="CSV Cleanup example: 8 input rows, 5 ready, 2 for review and 1 duplicate, alongside the actual HTML report." width="1280">
+</picture>
+
+**[See the example report](https://jackspiece.github.io/csv-cleanup-example/)** · **[Quick start](#quick-start)** · [Behavior and limits](docs/behavior.md)
+
+[![Check CSV cleanup](https://github.com/jackspiece/csv-cleanup-example/actions/workflows/check.yml/badge.svg)](https://github.com/jackspiece/csv-cleanup-example/actions/workflows/check.yml)
+
+Python 3.11+ · Standard library only · Verified on Linux
+
+## Quick start
 
 ```sh
+git clone https://github.com/jackspiece/csv-cleanup-example.git
+cd csv-cleanup-example
 python tidy_csv.py examples/messy_customers.csv result --trim --deduplicate
 ```
 
-Open `result/report.html` for the counts and links to the output files. The example contains fictional data: 8 records become 5 ready rows, 1 exact duplicate and 2 rows for review.
+Open **`result/report.html`** in your browser. Use a new output directory for each run.
 
-![Example cleanup report](examples/preview.png)
+The included data is fictional. With the two flags above, the example produces:
 
-The generated example files are in [`examples/checked`](examples/checked).
+| Input | Ready | Review | Duplicate |
+| ---: | ---: | ---: | ---: |
+| 8 | 5 | 2 | 1 |
 
-| File | What it contains |
+**[Browse the saved output files →](examples/checked)**
+
+## What you get
+
+| File | Purpose |
 | --- | --- |
-| `cleaned.csv` | Valid rows, with the transformations you requested. |
-| `review.csv` | Rows with too many or too few cells, including their original values. |
-| `audit.jsonl` | Record numbers for changes, duplicates and rows sent for review. |
-| `summary.json` | Counts, settings and a SHA-256 fingerprint of the source file. |
-| `report.html` | A readable, local report. |
+| `cleaned.csv` | Rows with the expected columns and the transformations you requested. |
+| `review.csv` | Malformed rows, original values and source record numbers. |
+| `audit.jsonl` | A trace of changes, duplicate removal and review decisions. |
+| `summary.json` | Counts, settings and a fingerprint of the source file. |
+| `report.html` | A local page linking the results. |
 
-Trimming and deduplication are both optional. Without those flags, whitespace and repeated records are kept. Deduplication compares the entire row after optional trimming and keeps the first match. It does not decide that two different names or email addresses belong to the same person.
+## The rules are deliberately small
 
-All fields stay text. `00017` stays `00017`, and `1,204.50` stays `1,204.50`. The tool does not guess dates, currencies, missing values or the input delimiter. Spreadsheet applications can still interpret text when you open a CSV; choose text columns when importing identifiers.
+Trimming and exact deduplication are optional. Duplicate comparison uses the whole row after any requested trimming. It does not guess whether different names belong to the same person.
 
-The source must be UTF-8, with an optional BOM. Use `--delimiter ';'` for a semicolon file or `--delimiter tab` for TSV. Output uses UTF-8 and comma-separated fields. Record numbers count CSV records, including the header, rather than physical lines; a quoted multiline field is one record.
+Values stay text: `00017` remains `00017`. Dates, currencies and missing values are not inferred. Spreadsheet applications may still guess types when opening a CSV, so import identifier columns as text.
 
-The output folder must be new. Invalid quoting, invalid UTF-8 and ambiguous headers stop the run without publishing partial output. Rows with the wrong cell count are preserved for review. Inspect that file before using the cleaned data.
+Invalid quoting, invalid UTF-8 and ambiguous headers stop the run without publishing partial output. Rows with the wrong number of cells are retained for review.
 
-Requires Python 3.11 or newer on Linux. Other operating systems have not been validated.
+See **[the complete behavior guide](docs/behavior.md)** for delimiters, encoding, record numbers and output protection.
+
+## Run the checks
 
 ```sh
 python -m unittest discover -s tests -v
 ```
 
-The tests cover leading zeroes, Unicode, embedded commas and newlines, opt-in transformations, row accounting, retained review data, malformed input and existing-output protection.
+Ten tests cover text preservation, quoted and multiline fields, optional transformations, record accounting and malformed input.
 
-## Small paid jobs
+---
 
-I’m [jackspiece](https://github.com/jackspiece). I take small Python fixes and CSV cleanup jobs. We’ll agree on the scope and a fixed price before I start, and the delivery will include checks you can rerun.
-
-[Open a project enquiry](https://github.com/jackspiece/csv-cleanup-example/issues/new?template=work-request.md). A description and a sample with private values removed are enough to assess a job. Please keep real customer data and payment details out of public GitHub issues.
+Built by [jackspiece](https://github.com/jackspiece). For a small CSV or Python job, [open a project enquiry](https://github.com/jackspiece/csv-cleanup-example/issues/new?template=work-request.md) with a redacted example. Scope, price and funding are agreed before work starts. Keep private customer and payment details out of public issues.
