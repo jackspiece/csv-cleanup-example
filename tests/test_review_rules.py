@@ -276,7 +276,7 @@ class RulesTests(unittest.TestCase):
         self.assertIn('unknown key', stderr.getvalue())
         self.assertFalse((self.root / 'bad-output').exists())
 
-    def test_no_rules_matches_frozen_baseline_bytes_for_all_five_outputs(self):
+    def test_no_rules_matches_data_baseline_and_report_snapshot(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures' / 'no_rules_sha256.json').read_text())
         for name, raw in FIXTURE_SOURCE.items():
             self.source.write_bytes(raw)

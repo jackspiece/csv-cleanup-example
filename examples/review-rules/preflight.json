@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "scope": "rules_and_header",
+  "valid": true,
+  "source": "customers.csv",
+  "rules": {
+    "source": "rules.json",
+    "sha256": "0358ad36d40b0467ef8599024dfcb200a58360d384b8604e7b0d9f5b498e025e"
+  },
+  "settings": {
+    "encoding": "utf-8-sig",
+    "delimiter": ",",
+    "trim": true
+  },
+  "data_rows_checked": false,
+  "columns": [
+    {
+      "column_index": 1,
+      "name": "id",
+      "required_nonblank": true,
+      "allowed_value_count": 0
+    },
+    {
+      "column_index": 2,
+      "name": "status",
+      "required_nonblank": false,
+      "allowed_value_count": 3
+    },
+    {
+      "column_index": 3,
+      "name": "name",
+      "required_nonblank": false,
+      "allowed_value_count": 0
+    }
+  ],
+  "unmatched_rule_columns": [],
+  "errors": [],
+  "notes": [
+    "Only the rules and CSV header are checked. Data rows are not parsed or evaluated; text decoding may read ahead.",
+    "Column names match exactly after optional header trimming. Rule names and allowed values are never trimmed.",
+    "No cleanup outputs are created. Passing this check does not mean the data passes its rules or is safe for spreadsheets.",
+    "Basenames and column names are included; data cells and configured allowed values are never included."
+  ]
+}

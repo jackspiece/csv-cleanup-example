@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 import csv
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 import hashlib
 import html
+import io
 import json
 import os
 from pathlib import Path
@@ -19,6 +21,20 @@ from review_rules import failure_reason, load_rules
 
 class InputError(ValueError):
     """The source cannot be read without guessing its structure."""
+
+
+def read_header(reader, *, trim: bool = False) -> tuple[list[str], list[str]]:
+    """Read and validate the shared cleanup/preflight header contract."""
+    try:
+        original_header = next(reader)
+    except StopIteration as exc:
+        raise InputError("The CSV is empty; a header row is required.") from exc
+    header = [cell.strip() if trim else cell for cell in original_header]
+    if not header or any(not cell.strip() for cell in header):
+        raise InputError("Column names must not be empty.")
+    if len(set(header)) != len(header):
+        raise InputError("Column names would be duplicated; fix the header first.")
+    return original_header, header
 
 
 @dataclass
@@ -71,7 +87,8 @@ dt{{font-weight:650;margin-top:12px}}dd{{margin-left:0;color:#42575e}}footer{{ma
 </style><main><div class="eyebrow">CSV cleanup / checked output</div>
 <h1>Every row accounted for.</h1><p>Source: <strong>{e(s.source)}</strong>. The source file was read, never edited.</p>
 <div class="cards">{counts}</div>
-<p class="note">{s.input_rows:,} input rows = {s.output_rows:,} ready + {s.duplicate_rows:,} duplicates + {s.review_rows:,} for review.</p>
+<p class="note">{s.input_rows:,} input {'row' if s.input_rows == 1 else 'rows'} = {s.output_rows:,} ready + {s.duplicate_rows:,} {'duplicate' if s.duplicate_rows == 1 else 'duplicates'} + {s.review_rows:,} for review.</p>
+<p class="note">Spreadsheet safety: CSV values are not sanitized for formulas. Import untrusted columns explicitly as text before opening these CSV files in spreadsheet software.</p>
 <h2>Files to use</h2><dl>
 <dt><a href="cleaned.csv">cleaned.csv</a></dt><dd>Rows with the expected number of columns. Values stay text, including IDs with leading zeroes.</dd>
 <dt><a href="review.csv">review.csv</a></dt><dd>{review_description}</dd>
@@ -81,8 +98,34 @@ dt{{font-weight:650;margin-top:12px}}dd{{margin-left:0;color:#42575e}}footer{{ma
 Remove exact duplicate rows: <strong>{'yes' if s.deduplicate else 'no'}</strong>.
 Cells changed: <strong>{s.changed_cells:,}</strong>.</p>
 <p>Duplicates use every cell, after optional trimming. The first matching record is kept. No names, dates, numbers or currencies were inferred.</p>
-{rules_note}<p class="note">Spreadsheet safety: CSV values are not sanitized for formulas. Import untrusted columns explicitly as text before opening these CSV files in spreadsheet software.</p>
-<footer>Source SHA-256<br><code>{e(s.source_sha256)}</code></footer></main></html>'''
+{rules_note}<footer>Source SHA-256<br><code>{e(s.source_sha256)}</code></footer></main></html>'''
+
+
+@contextmanager
+def _source_snapshot(source: Path, directory: Path):
+    """Hash and parse the same private copy, with bounded copy memory.
+
+    The copy is the byte stream observed during capture, not a promise of a
+    point-in-time filesystem snapshot. Metadata checks catch ordinary writers;
+    provenance remains exact even if a concurrent change evades those checks.
+    """
+    with tempfile.TemporaryFile(mode="w+b", dir=directory) as snapshot:
+        digest = hashlib.sha256()
+        with source.open("rb") as raw:
+            before = os.fstat(raw.fileno())
+            buffer = bytearray(1024 * 1024)
+            view = memoryview(buffer)
+            while size := raw.readinto(buffer):
+                chunk = view[:size]
+                snapshot.write(chunk)
+                digest.update(chunk)
+            after = os.fstat(raw.fileno())
+            if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (
+                    after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                raise InputError("Source changed during capture; no output published. Retry with a stable file.")
+        snapshot.seek(0)
+        with io.TextIOWrapper(snapshot, encoding="utf-8-sig", newline="") as stream:
+            yield stream, digest.hexdigest()
 
 
 def clean(source: Path | str, output: Path | str, *, trim: bool = False,
@@ -96,25 +139,15 @@ def clean(source: Path | str, output: Path | str, *, trim: bool = False,
     if not source.is_file():
         raise InputError(f"Source is not a file: {source}")
     review_rules = load_rules(rules) if rules is not None else None
-    with source.open("rb") as raw:
-        digest = hashlib.file_digest(raw, "sha256").hexdigest()
     output.parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix=".csv-tidy-", dir=output.parent))
     try:
-        with source.open(encoding="utf-8-sig", newline="") as src, \
+        with _source_snapshot(source, stage) as (src, digest), \
              (stage / "cleaned.csv").open("w", encoding="utf-8", newline="") as dst, \
              (stage / "review.csv").open("w", encoding="utf-8", newline="") as review, \
              (stage / "audit.jsonl").open("w", encoding="utf-8") as audit:
             reader = csv.reader(src, delimiter=delimiter, strict=True)
-            try:
-                original_header = next(reader)
-            except StopIteration as exc:
-                raise InputError("The CSV is empty; a header row is required.") from exc
-            header = [cell.strip() if trim else cell for cell in original_header]
-            if not header or any(not cell.strip() for cell in header):
-                raise InputError("Column names must not be empty.")
-            if len(set(header)) != len(header):
-                raise InputError("Column names would be duplicated; fix the header first.")
+            original_header, header = read_header(reader, trim=trim)
             bound_rules = review_rules.bind(header) if review_rules else None
             if review_rules:
                 result = RulesSummary(source.name, digest, header, trim=trim,

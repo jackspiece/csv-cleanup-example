@@ -51,6 +51,14 @@ Invalid quoting, invalid UTF-8 and ambiguous headers stop the run without publis
 
 `audit.jsonl` records changed, removed and review records; `summary.json` records the settings, counts and a SHA-256 fingerprint of the input.
 
+### Source fingerprint and concurrent changes
+
+Cleanup reads the source once into a private temporary copy in the output's parent filesystem. It hashes the exact bytes copied, then parses only that copy. `source_sha256` therefore describes the bytes actually processed, including the original UTF-8 signature and line endings. The copy is closed and removed before publishing; it is not an extra output file. A stable source produces the same five output files and bytes as before.
+
+Keep the source stable while it is being captured. An observed change to its size or modification/change timestamps during capture stops the run with no published output. The check is a best-effort guard, not a filesystem lock or an atomic point-in-time snapshot: a concurrent writer can cause the captured stream to contain bytes from different versions. Even if that change evades the metadata check, the fingerprint still describes exactly the private copy parsed. An edit or path replacement after capture does not change that copy; the result can describe an earlier version than the file currently at the source path. The source basename is a label, not proof that the path still contains those bytes.
+
+Capture uses a fixed 1 MiB buffer and temporary disk space equal to the source byte length, in addition to the cleanup outputs. It adds one sequential temporary-file write; parsing reads the copy instead of rereading the source. Ordinary cleanup memory still depends on header width and the largest CSV record. With `--deduplicate`, the existing set of distinct rows also grows with the data. A capture/read/write/parse failure removes staging files and publishes no partial result. Sufficient free space on the output filesystem is required.
+
 ## Supported environment
 
 Python 3.11 or newer on Linux. Other operating systems have not been validated.

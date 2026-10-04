@@ -25,6 +25,8 @@ Open **`result/report.html`** in your browser. Use a new output directory for ea
 
 To inspect an export first, run `python profile_csv.py examples/messy_customers.csv`. The [read-only preflight guide](docs/profiling.md) explains structural counts, explicit prefix limits, and opt-in value previews. Profiling does not choose cleanup flags or certify spreadsheet safety.
 
+Before applying review rules, run `python check_rules.py examples/review-rules/customers.csv --rules examples/review-rules/rules.json --trim`. The [rules/header preflight](docs/review-rules.md#check-the-rules-before-cleanup) shows which columns have configured checks and flags invalid configuration or missing targets. It creates no cleanup outputs and does not check data rows.
+
 The included data is fictional. With the two flags above, the example produces:
 
 | Input | Ready | Review | Duplicate |
@@ -45,7 +47,7 @@ The included data is fictional. With the two flags above, the example produces:
 
 ## The rules are deliberately small
 
-Trimming and exact deduplication are optional. Optional [review rules](docs/review-rules.md) can require nonblank fields or exact allowed values; failing rows retain their original cells and explicit reasons for review. Without `--rules`, the existing output formats and bytes are unchanged.
+Trimming and exact deduplication are optional. Optional [review rules](docs/review-rules.md) can require nonblank fields or exact allowed values; failing rows retain their original cells and explicit reasons for review. Without `--rules`, the existing data-file formats and bytes are unchanged.
 
 Duplicate comparison uses the whole row after any requested trimming. It does not guess whether different names belong to the same person.
 

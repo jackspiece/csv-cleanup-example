@@ -1,0 +1,15 @@
+Review-rules preflight: "customers.csv"
+Rules and header only. Data rows have NOT been checked.
+No cleanup or output files were created.
+Rules: "rules.json"
+Rules SHA-256 (exact file bytes): 0358ad36d40b0467ef8599024dfcb200a58360d384b8604e7b0d9f5b498e025e
+Trim header edges: yes; delimiter: ",".
+Result: configuration can bind to this header.
+Configured checks by effective CSV column:
+  1. "id": required nonblank
+  2. "status": 3 allowed exact values (hidden)
+  3. "name": no configured checks
+Only the rules and CSV header are checked. Data rows are not parsed or evaluated; text decoding may read ahead.
+Column names match exactly after optional header trimming. Rule names and allowed values are never trimmed.
+No cleanup outputs are created. Passing this check does not mean the data passes its rules or is safe for spreadsheets.
+Basenames and column names are included; data cells and configured allowed values are never included.
