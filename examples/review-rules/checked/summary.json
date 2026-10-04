@@ -1,0 +1,26 @@
+{
+  "source": "customers.csv",
+  "source_sha256": "8046139599f105abb6fd6df84bc4536ef4b1f1ed99e0a6b1172c20d781dbcc86",
+  "columns": [
+    "id",
+    "status",
+    "name"
+  ],
+  "input_rows": 8,
+  "output_rows": 3,
+  "duplicate_rows": 1,
+  "review_rows": 4,
+  "changed_cells": 3,
+  "trim": true,
+  "deduplicate": true,
+  "review_rules": {
+    "source": "rules.json",
+    "sha256": "0358ad36d40b0467ef8599024dfcb200a58360d384b8604e7b0d9f5b498e025e",
+    "required_nonblank": [
+      "id"
+    ],
+    "allowed_value_columns": [
+      "status"
+    ]
+  }
+}

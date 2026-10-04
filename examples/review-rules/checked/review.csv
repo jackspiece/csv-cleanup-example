@@ -1,0 +1,5 @@
+source_record,reason,original_cells_json,rules_sha256
+4,"Required nonblank column ""id"" is blank","["""", ""ready"", ""Missing ID""]",0358ad36d40b0467ef8599024dfcb200a58360d384b8604e7b0d9f5b498e025e
+5,"Column ""status"" is not an allowed exact value","[""0002"", ""hold"", ""Bo""]",0358ad36d40b0467ef8599024dfcb200a58360d384b8604e7b0d9f5b498e025e
+7,"Expected 3 cells, found 2","[""0005"", ""ready""]",0358ad36d40b0467ef8599024dfcb200a58360d384b8604e7b0d9f5b498e025e
+8,"Required nonblank column ""id"" is blank; Column ""status"" is not an allowed exact value","["""", ""hold"", ""Noor""]",0358ad36d40b0467ef8599024dfcb200a58360d384b8604e7b0d9f5b498e025e

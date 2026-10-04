@@ -24,6 +24,21 @@ python tidy_csv.py input.tsv new-result --delimiter tab
 
 Output uses UTF-8 and comma-separated fields.
 
+A byte-order mark at the very start of the input file is treated as an encoding signature. A literal U+FEFF inside a quoted header is field data and stays intact. When the first output column begins with that character, the header is quoted so reading the cleaned file again cannot mistake it for a file signature.
+
+## Spreadsheet safety
+
+This tool preserves data; it does **not** neutralize spreadsheet formulas. A value such as `=1+1`, `+SUM(A1:A2)`, `-12` or `@text` is written unchanged (apart from requested trimming). CSV quoting only escapes delimiters and quotes; it is not a formula-injection defense. Leading whitespace or control characters may also affect how a spreadsheet interprets a cell, and `--trim` can expose a formula prefix.
+
+For exports you do not trust:
+
+- Inspect the file in a text editor first, rather than double-clicking it in a spreadsheet.
+- Use your spreadsheet's import flow and explicitly set **all untrusted columns to text**, with formula evaluation disabled where offered. Check the resulting cell types before saving or sharing the workbook.
+- Do not enable links, macros, or other active content prompted by imported data.
+- If you need a spreadsheet-safe delivery format, make that a separate, reviewed export step. Prefixing values or changing their types would alter the original data, so this cleanup sample does not silently do it.
+
+The HTML report escapes the source filename and does not render cell values. It still links to the raw CSV files; opening those files has the risks above. Audit and review files can contain the original data and need the same privacy care as the source.
+
 ## Record numbers
 
 Numbers count CSV records, including the header, rather than physical lines. A quoted multiline field is one record.
@@ -45,3 +60,5 @@ Python 3.11 or newer on Linux. Other operating systems have not been validated.
 [The saved example](../examples/checked) contains five ready rows, two review rows and one exact duplicate from eight fictional input records.
 
 The [test suite](../tests) covers leading zeroes, Unicode, embedded commas and newlines, opt-in transformations, row accounting, retained review data, malformed input and an existing output directory.
+
+The generated suite runs 40 fixed seeds under each flag combination (160 cases), without extra packages. It compares the full output to an independent small model and checks that `input = ready + duplicates + review`, each removed duplicate points to its first retained record, and every malformed record remains in review. Cleaning `cleaned.csv` again with the same flags must produce byte-identical cleaned data and no new changes, review records or duplicates. This idempotence promise is for cleaned data only: metadata and the audit describe a new input and a new run.
