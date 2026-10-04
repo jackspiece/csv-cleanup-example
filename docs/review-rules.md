@@ -16,6 +16,81 @@ rows = 3 ready + 4 for review + 1 duplicate**. Open `new-rules-result/report.htm
 or inspect the [saved results](../examples/review-rules/checked). Neither the
 source nor the rules file is edited. Use a new output directory each time.
 
+## Check the rules before cleanup
+
+Preview how a configuration targets an export before creating cleanup outputs:
+
+```sh
+python check_rules.py examples/review-rules/customers.csv \
+  --rules examples/review-rules/rules.json --trim
+```
+
+The [saved text report](../examples/review-rules/preflight.txt) shows that `id`
+requires a nonblank value, `status` has three allowed exact values, and `note`
+has no configured checks. The allowed values themselves are hidden. The command
+prints a report on stdout and creates no cleanup directory, CSV, audit, or HTML
+file. Source bytes, rule bytes, and existing cleanup outputs are unchanged.
+As with other Python scripts, use `python -B` if you also want to suppress
+Python's import-bytecode cache files.
+
+**This checks only configuration and header compatibility. Data rows have not
+been checked.** A successful result does not verify row widths, data-row quoting,
+rule compliance, business validity, or spreadsheet safety. For example, a file
+with a valid header and an unterminated quoted data row can pass this command;
+the full cleanup still rejects it. Text decoding may read beyond the header, so
+invalid UTF-8 near the header can prevent the check even though no data row is
+parsed. Use the [profiler](profiling.md) for structural/data observations, and run
+cleanup to evaluate rules on actual records.
+
+Use the same `--trim` and `--delimiter` settings as the cleanup you intend to run.
+Trimming is off by default. Delimiters are explicit, with `--delimiter tab` for
+TSV. The shared cleanup header validator and rules loader/binder are used, so
+UTF-8 signatures, literal U+FEFF field data, exact column names, ambiguous headers,
+strict JSON, and the 1 MiB configuration limit follow the same contract.
+
+- Exit **0** means the configuration can bind to the effective header.
+- Exit **2** means invalid configuration, an invalid/unreadable header, missing
+  rule targets, or invalid command options. Reports for file/configuration/header
+  failures remain on stdout; command-option errors use stderr.
+- A rule targeting a missing column is listed by its exact name. Fix the rules
+  or header explicitly, then rerun. There are no guesses or automatic edits.
+
+For a machine-readable report, add `--format json`:
+
+```sh
+python check_rules.py examples/review-rules/customers.csv \
+  --rules examples/review-rules/rules.json --trim --format json
+```
+
+The [saved JSON report](../examples/review-rules/preflight.json) has
+`schema_version: 1`, `scope: "rules_and_header"`, a `valid` boolean, and an explicit
+`data_rows_checked: false`. Its `columns` list uses one-based `column_index`, the
+effective `name`, a `required_nonblank` boolean, and `allowed_value_count` (zero
+means no allowed-values check). A column can have both checks. Unconfigured
+columns are listed too, without implying that they were validated.
+
+`unmatched_rule_columns` lists missing targets once, in required-column order
+followed by allowed-value-column order. Both it and `columns` are `null` if the
+configuration or header could not be read and validated. On a binding failure,
+the available column coverage and missing targets are still reported, with
+`valid: false` and `errors` describing the failure. Rules are loaded first, so an
+invalid rules file stops the check before the CSV header is read. Correct that
+failure and rerun to check the next stage.
+
+The `errors` list contains a `code` and human-readable `message`. Current codes
+are `invalid_rules`, `unreadable_rules`, `unreadable_source`, `invalid_header`,
+`unreadable_header`, `source_changed`, and `unbound_rules`. Rule-file existence
+and size failures are `invalid_rules`, following the shared rules loader.
+Messages are intended for people; use the codes rather than matching prose.
+
+`rules.sha256` identifies exact rule-file bytes and is `null` when configuration
+loading failed. There is no CSV fingerprint or full-file scan in this command.
+`source` and `rules.source` contain basenames, never parent directory paths.
+Header/rule column names are included and can themselves reveal private details.
+Raw data cells and configured allowed values are not included in reports or
+validation errors. Both text and JSON escape terminal control characters in
+names. Nothing is sent over the network.
+
 ## Configuration
 
 ```json
@@ -109,11 +184,12 @@ status, record 7 is too short, and record 8 fails both ID and status checks. Rec
 3 duplicates record 2. Record 6 is trimmed before its Unicode status is checked.
 The `001` status remains a string, as do the zero-padded IDs.
 
-Without `--rules`, the output formats and bytes remain unchanged for the
-same source and options. In particular, `review.csv` has its original three
-columns, no rule fields or events appear in the JSON outputs, and the HTML stays
-unchanged. The separate [preflight profiler](profiling.md) is unchanged and does
-not interpret these rules.
+Without `--rules`, the four data-file formats and bytes remain unchanged for
+the same source and options. In particular, `review.csv` has its original three
+columns and no rule fields or events appear in the JSON outputs. The HTML report
+has a copy-only revision: singular row/duplicate wording and the spreadsheet
+warning before the file links. The separate [preflight profiler](profiling.md)
+is unchanged and does not interpret these rules.
 
 ## Safety and checks
 
@@ -131,7 +207,17 @@ semantics, exact leading-zero values, trim on/off behavior, multiple reasons,
 malformed-row precedence, original review cells, record numbers, deduplication
 and output protection. A deterministic generator covers 40 fixed seeds under
 four transformation combinations, comparing every ready/review/duplicate record
-and checking cleaned-data idempotence. A frozen baseline fixture compares all
-five no-rules output files byte-for-byte by SHA-256 over 12 combinations,
-including ordinary headers, UTF-8 signatures and literal U+FEFF headers. The
-existing cleanup, BOM, generated-property and profiler suites still run.
+and checking cleaned-data idempotence. A frozen baseline fixture compares the
+four no-rules data files byte-for-byte by SHA-256 over 12 combinations, including
+ordinary headers, UTF-8 signatures and literal U+FEFF headers. Separate revised
+HTML hashes cover the report-only copy change. Report tests also check singular
+and plural counts, warning placement, and saved-example/demo parity. The existing
+cleanup, BOM, generated-property and profiler suites still run.
+
+The rules/header preflight tests also cover coverage, missing targets, shared
+binding/header behavior, invalid JSON, file failures, safe error output, BOMs,
+TSV, Unicode and multiline names, deterministic CLI reports, deliberately
+unchecked data, source-change detection, and exact reproduction of the saved
+reports. Generated header cases compare preflight acceptance with cleanup under
+both trimming settings. SHA-256 snapshots prove source, configuration and
+existing result files are unchanged by successful and failed checks.
