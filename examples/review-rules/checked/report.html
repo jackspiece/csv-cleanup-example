@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CSV cleanup: messy_customers.csv</title>
+<title>CSV cleanup: customers.csv</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f4f5f2;color:#192d35;font:16px/1.6 system-ui,sans-serif}
 main{max-width:900px;margin:64px auto;padding:0 24px}.eyebrow{color:#45666a;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
@@ -11,18 +11,18 @@ a{color:#17605d}code{font-size:13px;overflow-wrap:anywhere}.note{border-left:3px
 dt{font-weight:650;margin-top:12px}dd{margin-left:0;color:#42575e}footer{margin-top:42px;border-top:1px solid #dce2dc;padding-top:18px;color:#627478;font-size:12px}
 @media(max-width:620px){main{margin:32px auto}.cards{grid-template-columns:repeat(2,1fr)}.card{padding:16px}}
 </style><main><div class="eyebrow">CSV cleanup / checked output</div>
-<h1>Every row accounted for.</h1><p>Source: <strong>messy_customers.csv</strong>. The source file was read, never edited.</p>
-<div class="cards"><div class="card"><strong>8</strong><span>Rows read</span></div><div class="card"><strong>5</strong><span>Ready</span></div><div class="card"><strong>1</strong><span>Duplicates removed</span></div><div class="card"><strong>2</strong><span>Need review</span></div></div>
-<p class="note">8 input rows = 5 ready + 1 duplicates + 2 for review.</p>
+<h1>Every row accounted for.</h1><p>Source: <strong>customers.csv</strong>. The source file was read, never edited.</p>
+<div class="cards"><div class="card"><strong>8</strong><span>Rows read</span></div><div class="card"><strong>3</strong><span>Ready</span></div><div class="card"><strong>1</strong><span>Duplicates removed</span></div><div class="card"><strong>4</strong><span>Need review</span></div></div>
+<p class="note">8 input rows = 3 ready + 1 duplicates + 4 for review.</p>
 <h2>Files to use</h2><dl>
 <dt><a href="cleaned.csv">cleaned.csv</a></dt><dd>Rows with the expected number of columns. Values stay text, including IDs with leading zeroes.</dd>
-<dt><a href="review.csv">review.csv</a></dt><dd>Rows with missing or extra cells, with their original values and source record number.</dd>
+<dt><a href="review.csv">review.csv</a></dt><dd>Rows with missing or extra cells or failed review rules, with their original values, source record number and rules fingerprint.</dd>
 <dt><a href="audit.jsonl">audit.jsonl</a></dt><dd>One event for each changed, removed or quarantined record.</dd>
 <dt><a href="summary.json">summary.json</a></dt><dd>Counts, settings and the source fingerprint.</dd></dl>
 <h2>What was applied</h2><p>Trim outer whitespace: <strong>yes</strong>.
 Remove exact duplicate rows: <strong>yes</strong>.
 Cells changed: <strong>3</strong>.</p>
 <p>Duplicates use every cell, after optional trimming. The first matching record is kept. No names, dates, numbers or currencies were inferred.</p>
+<h2>Review rules</h2><p>Checked after optional trimming and before deduplication. Rows failing any rule are retained in review.csv with their original cells. Ready rows passed the configured checks; this is not a general validity or safety guarantee.</p><p>Rules: <strong>rules.json</strong><br>SHA-256: <code>0358ad36d40b0467ef8599024dfcb200a58360d384b8604e7b0d9f5b498e025e</code></p>
 <p class="note">Spreadsheet safety: CSV values are not sanitized for formulas. Import untrusted columns explicitly as text before opening these CSV files in spreadsheet software.</p>
-<p><a href="https://github.com/jackspiece/csv-cleanup-example">View the source and quick start on GitHub</a></p>
-<footer>Source SHA-256<br><code>3355005ffb988694c23b1cee2c72b9c6ab2ae0972395273a13f06d1a0606946a</code></footer></main></html>
+<footer>Source SHA-256<br><code>8046139599f105abb6fd6df84bc4536ef4b1f1ed99e0a6b1172c20d781dbcc86</code></footer></main></html>

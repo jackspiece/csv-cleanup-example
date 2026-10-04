@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import csv
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 import hashlib
 import html
 import json
@@ -13,6 +13,8 @@ from pathlib import Path
 import shutil
 import sys
 import tempfile
+
+from review_rules import failure_reason, load_rules
 
 
 class InputError(ValueError):
@@ -33,12 +35,27 @@ class Summary:
     deduplicate: bool = False
 
 
+@dataclass
+class RulesSummary(Summary):
+    review_rules: dict[str, object] = field(default_factory=dict)
+
+
 def _report(summary: Summary) -> str:
     s = summary
     e = html.escape
     cards = [("Rows read", s.input_rows), ("Ready", s.output_rows),
              ("Duplicates removed", s.duplicate_rows), ("Need review", s.review_rows)]
     counts = "".join(f'<div class="card"><strong>{value:,}</strong><span>{label}</span></div>' for label, value in cards)
+    rules_note = ""
+    review_description = "Rows with missing or extra cells, with their original values and source record number."
+    if isinstance(s, RulesSummary):
+        review_description = ("Rows with missing or extra cells or failed review rules, "
+                              "with their original values, source record number and rules fingerprint.")
+        rules_note = ("<h2>Review rules</h2><p>Checked after optional trimming and before deduplication. "
+                      "Rows failing any rule are retained in review.csv with their original cells. "
+                      "Ready rows passed the configured checks; this is not a general validity or safety guarantee.</p>"
+                      f"<p>Rules: <strong>{e(str(s.review_rules['source']))}</strong><br>"
+                      f"SHA-256: <code>{e(str(s.review_rules['sha256']))}</code></p>\n")
     return f'''<!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CSV cleanup: {e(s.source)}</title>
@@ -57,18 +74,20 @@ dt{{font-weight:650;margin-top:12px}}dd{{margin-left:0;color:#42575e}}footer{{ma
 <p class="note">{s.input_rows:,} input rows = {s.output_rows:,} ready + {s.duplicate_rows:,} duplicates + {s.review_rows:,} for review.</p>
 <h2>Files to use</h2><dl>
 <dt><a href="cleaned.csv">cleaned.csv</a></dt><dd>Rows with the expected number of columns. Values stay text, including IDs with leading zeroes.</dd>
-<dt><a href="review.csv">review.csv</a></dt><dd>Rows with missing or extra cells, with their original values and source record number.</dd>
+<dt><a href="review.csv">review.csv</a></dt><dd>{review_description}</dd>
 <dt><a href="audit.jsonl">audit.jsonl</a></dt><dd>One event for each changed, removed or quarantined record.</dd>
 <dt><a href="summary.json">summary.json</a></dt><dd>Counts, settings and the source fingerprint.</dd></dl>
 <h2>What was applied</h2><p>Trim outer whitespace: <strong>{'yes' if s.trim else 'no'}</strong>.
 Remove exact duplicate rows: <strong>{'yes' if s.deduplicate else 'no'}</strong>.
 Cells changed: <strong>{s.changed_cells:,}</strong>.</p>
 <p>Duplicates use every cell, after optional trimming. The first matching record is kept. No names, dates, numbers or currencies were inferred.</p>
+{rules_note}<p class="note">Spreadsheet safety: CSV values are not sanitized for formulas. Import untrusted columns explicitly as text before opening these CSV files in spreadsheet software.</p>
 <footer>Source SHA-256<br><code>{e(s.source_sha256)}</code></footer></main></html>'''
 
 
 def clean(source: Path | str, output: Path | str, *, trim: bool = False,
-          deduplicate: bool = False, delimiter: str = ",") -> Summary:
+          deduplicate: bool = False, delimiter: str = ",",
+          rules: Path | str | None = None) -> Summary:
     source, output = Path(source), Path(output)
     if len(delimiter) != 1 or delimiter in "\r\n\0":
         raise ValueError("Delimiter must be one character, other than a line break or NUL.")
@@ -76,6 +95,7 @@ def clean(source: Path | str, output: Path | str, *, trim: bool = False,
         raise FileExistsError(f"Output already exists: {output}")
     if not source.is_file():
         raise InputError(f"Source is not a file: {source}")
+    review_rules = load_rules(rules) if rules is not None else None
     with source.open("rb") as raw:
         digest = hashlib.file_digest(raw, "sha256").hexdigest()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -95,14 +115,34 @@ def clean(source: Path | str, output: Path | str, *, trim: bool = False,
                 raise InputError("Column names must not be empty.")
             if len(set(header)) != len(header):
                 raise InputError("Column names would be duplicated; fix the header first.")
-            result = Summary(source.name, digest, header, trim=trim, deduplicate=deduplicate)
+            bound_rules = review_rules.bind(header) if review_rules else None
+            if review_rules:
+                result = RulesSummary(source.name, digest, header, trim=trim,
+                                      deduplicate=deduplicate, review_rules=review_rules.metadata())
+            else:
+                result = Summary(source.name, digest, header, trim=trim, deduplicate=deduplicate)
             writer, review_writer = csv.writer(dst), csv.writer(review)
-            writer.writerow(header)
-            review_writer.writerow(["source_record", "reason", "original_cells_json"])
+            # A literal U+FEFF at byte zero would be read as a UTF-8 signature
+            # on the next run. Quote this header so its leading character stays
+            # field data; ordinary headers and data rows keep minimal quoting.
+            header_writer = csv.writer(dst, quoting=csv.QUOTE_ALL) if header[0].startswith("\ufeff") else writer
+            header_writer.writerow(header)
+            review_writer.writerow(["source_record", "reason", "original_cells_json"]
+                                   + (["rules_sha256"] if review_rules else []))
 
             def event(record: int, action: str, **details: object) -> None:
+                if review_rules:
+                    details["rules_sha256"] = review_rules.sha256
                 audit.write(json.dumps({"source_record": record, "action": action, **details}, ensure_ascii=False) + "\n")
 
+            def quarantine(record: int, row: list[str], reason: str, **details: object) -> None:
+                review_writer.writerow([record, reason, json.dumps(row, ensure_ascii=False)]
+                                       + ([review_rules.sha256] if review_rules else []))
+                event(record, "quarantined", reason=reason, **details)
+                result.review_rows += 1
+
+            if review_rules:
+                event(1, "review_rules_applied", review_rules=review_rules.metadata())
             if header != original_header:
                 event(1, "header_trimmed", original=original_header, cleaned=header)
             seen: dict[tuple[str, ...], int] = {}
@@ -110,15 +150,17 @@ def clean(source: Path | str, output: Path | str, *, trim: bool = False,
                 result.input_rows += 1
                 if len(row) != len(header):
                     reason = f"Expected {len(header)} cells, found {len(row)}"
-                    review_writer.writerow([record, reason, json.dumps(row, ensure_ascii=False)])
-                    event(record, "quarantined", reason=reason)
-                    result.review_rows += 1
+                    quarantine(record, row, reason)
                     continue
                 cleaned = [cell.strip() for cell in row] if trim else row
                 changes = [header[i] for i, (before, after) in enumerate(zip(row, cleaned)) if before != after]
                 if changes:
                     result.changed_cells += len(changes)
                     event(record, "trimmed", columns=changes)
+                failures = bound_rules.failures(cleaned) if bound_rules else []
+                if failures:
+                    quarantine(record, row, failure_reason(failures), rule_failures=failures)
+                    continue
                 key = tuple(cleaned)
                 if deduplicate and key in seen:
                     event(record, "duplicate_removed", kept_source_record=seen[key])
@@ -152,11 +194,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("output", type=Path, help="New output folder; must not already exist")
     parser.add_argument("--trim", action="store_true", help="Trim whitespace at cell and header edges")
     parser.add_argument("--deduplicate", action="store_true", help="Keep the first of exact matching rows")
+    parser.add_argument("--rules", type=Path, help="Local JSON review rules; checked before deduplication")
     parser.add_argument("--delimiter", default=",", help="Input delimiter; use 'tab' for TSV. Output is comma-separated.")
     args = parser.parse_args(argv)
     try:
         result = clean(args.source, args.output, trim=args.trim, deduplicate=args.deduplicate,
-                       delimiter="\t" if args.delimiter == "tab" else args.delimiter)
+                       delimiter="\t" if args.delimiter == "tab" else args.delimiter, rules=args.rules)
     except (OSError, ValueError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2

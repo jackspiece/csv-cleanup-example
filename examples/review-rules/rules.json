@@ -1,0 +1,6 @@
+{
+  "required_nonblank": ["id"],
+  "allowed_values": {
+    "status": ["ready", "批准", "001"]
+  }
+}
