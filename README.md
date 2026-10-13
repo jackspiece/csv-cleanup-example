@@ -13,6 +13,8 @@ Clean a CSV export and keep a record of what changed. IDs stay text, rows with m
 
 Python 3.11+ · Standard library only · Verified on Linux
 
+Cleanup needs Linux or macOS: its publish step renames the finished output folder into place, which native Windows rejects. On Windows, run it inside [WSL](https://learn.microsoft.com/windows/wsl/install).
+
 ## Quick start
 
 ```sh
