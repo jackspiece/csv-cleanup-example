@@ -71,4 +71,4 @@ Dedicated header regressions distinguish UTF-8 file signatures from literal U+FE
 
 ---
 
-Built by [jackspiece](https://github.com/jackspiece). For a small CSV or Python job, [open a project enquiry](https://github.com/jackspiece/csv-cleanup-example/issues/new?template=work-request.md) with a redacted example. Scope, price and funding are agreed before work starts. Keep private customer and payment details out of public issues.
+Built by [jackspiece](https://github.com/jackspiece). For a small CSV or Python job, [open a project enquiry](https://github.com/jackspiece/csv-cleanup-example/issues/new?template=work-request.md) with a redacted example. Scope, price and funding are agreed before work starts. Keep private customer and payment details out of public issues. MIT licensed; see [LICENSE](LICENSE).
