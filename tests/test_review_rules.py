@@ -336,16 +336,22 @@ class RulesTests(unittest.TestCase):
                         summary = clean(self.source, self.output, trim=trim, deduplicate=deduplicate,
                                         delimiter=delimiter, rules=self.rules)
                         self.assertEqual(self.read_csv('cleaned.csv'), [['id', 'status']] + expected_ready)
-                        self.assertEqual([(int(row[0]), json.loads(row[2])) for row in self.read_csv('review.csv')[1:]], expected_review)
+                        self.assertEqual([(int(row[0]), json.loads(row[2]))
+                                          for row in self.read_csv('review.csv')[1:]], expected_review)
                         self.assertEqual([(event['source_record'], event['kept_source_record'])
-                                          for event in self.audit() if event['action'] == 'duplicate_removed'], expected_duplicates)
-                        self.assertEqual(summary.input_rows, len(expected_ready) + len(expected_review) + len(expected_duplicates))
-                        self.assertEqual(summary.input_rows, summary.output_rows + summary.review_rows + summary.duplicate_rows)
+                                          for event in self.audit() if event['action'] == 'duplicate_removed'],
+                                         expected_duplicates)
+                        self.assertEqual(summary.input_rows,
+                                         len(expected_ready) + len(expected_review) + len(expected_duplicates))
+                        self.assertEqual(summary.input_rows,
+                                         summary.output_rows + summary.review_rows + summary.duplicate_rows)
                         next_output = self.root / f'reclean-{seed}-{trim}-{deduplicate}'
                         reclean = clean(self.output / 'cleaned.csv', next_output, trim=trim,
                                         deduplicate=deduplicate, rules=self.rules)
-                        self.assertEqual((reclean.review_rows, reclean.duplicate_rows, reclean.changed_cells), (0, 0, 0))
-                        self.assertEqual((self.output / 'cleaned.csv').read_bytes(), (next_output / 'cleaned.csv').read_bytes())
+                        self.assertEqual((reclean.review_rows, reclean.duplicate_rows, reclean.changed_cells),
+                                         (0, 0, 0))
+                        self.assertEqual((self.output / 'cleaned.csv').read_bytes(),
+                                         (next_output / 'cleaned.csv').read_bytes())
 
 
 if __name__ == '__main__':

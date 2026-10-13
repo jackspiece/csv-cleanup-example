@@ -343,7 +343,8 @@ class ProfilerTests(unittest.TestCase):
                     self.assertEqual(column["present_cells"], len(valid))
                     self.assertEqual(column["empty_cells"], expected.count(""))
                     self.assertEqual(column["whitespace_only_cells"], sum(v != "" and v.isspace() for v in expected))
-                    self.assertEqual(column["outer_whitespace_cells"], sum(bool(v) and (v[0].isspace() or v[-1].isspace()) for v in expected))
+                    self.assertEqual(column["outer_whitespace_cells"],
+                                     sum(bool(v) and (v[0].isspace() or v[-1].isspace()) for v in expected))
                     self.assertEqual(column["maximum_cell_length"], max(map(len, expected), default=0))
 
 

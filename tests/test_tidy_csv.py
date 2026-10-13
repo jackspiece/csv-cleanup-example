@@ -51,7 +51,8 @@ class CleanupTests(unittest.TestCase):
             ["0002", "José", "000.00", "line one\nline two"],
             ["0005", "空山", "£39.00", "quoted, note"],
         ])
-        self.assertEqual((result.input_rows, result.output_rows, result.duplicate_rows, result.review_rows), (6, 3, 1, 2))
+        self.assertEqual((result.input_rows, result.output_rows, result.duplicate_rows, result.review_rows),
+                         (6, 3, 1, 2))
         with (self.output / "review.csv").open(encoding="utf-8", newline="") as f:
             reviewed = list(csv.DictReader(f))
         self.assertEqual(json.loads(reviewed[0]["original_cells_json"]), ["0003", "short"])

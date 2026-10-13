@@ -66,13 +66,15 @@ class GeneratedProperties(unittest.TestCase):
                             self.assertEqual(result.output_rows, len(expected))
                             self.assertEqual(result.review_rows, len(reviewed))
                             self.assertEqual(result.duplicate_rows, len(removed))
-                            self.assertEqual(result.input_rows, result.output_rows + result.review_rows + result.duplicate_rows)
+                            self.assertEqual(result.input_rows,
+                                             result.output_rows + result.review_rows + result.duplicate_rows)
                             self.assertEqual(source.read_bytes(), original)
 
                             again = clean(first / "cleaned.csv", second, trim=trim, deduplicate=deduplicate)
                             # Idempotence applies to the cleaned data, not to the
                             # audit/report whose source and counts intentionally change.
-                            self.assertEqual((first / "cleaned.csv").read_bytes(), (second / "cleaned.csv").read_bytes())
+                            self.assertEqual((first / "cleaned.csv").read_bytes(),
+                                             (second / "cleaned.csv").read_bytes())
                             self.assertEqual((again.changed_cells, again.review_rows, again.duplicate_rows), (0, 0, 0))
 
 
