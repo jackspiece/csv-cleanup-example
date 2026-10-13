@@ -61,7 +61,8 @@ def _report(summary: Summary) -> str:
     e = html.escape
     cards = [("Rows read", s.input_rows), ("Ready", s.output_rows),
              ("Duplicates removed", s.duplicate_rows), ("Need review", s.review_rows)]
-    counts = "".join(f'<div class="card"><strong>{value:,}</strong><span>{label}</span></div>' for label, value in cards)
+    counts = "".join(f'<div class="card"><strong>{value:,}</strong><span>{label}</span></div>'
+                     for label, value in cards)
     rules_note = ""
     review_description = "Rows with missing or extra cells, with their original values and source record number."
     if isinstance(s, RulesSummary):
@@ -72,6 +73,7 @@ def _report(summary: Summary) -> str:
                       "Ready rows passed the configured checks; this is not a general validity or safety guarantee.</p>"
                       f"<p>Rules: <strong>{e(str(s.review_rules['source']))}</strong><br>"
                       f"SHA-256: <code>{e(str(s.review_rules['sha256']))}</code></p>\n")
+    # Long template lines stay as they are: tests pin the report bytes to examples/ and docs/.
     return f'''<!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CSV cleanup: {e(s.source)}</title>
@@ -98,7 +100,7 @@ dt{{font-weight:650;margin-top:12px}}dd{{margin-left:0;color:#42575e}}footer{{ma
 Remove exact duplicate rows: <strong>{'yes' if s.deduplicate else 'no'}</strong>.
 Cells changed: <strong>{s.changed_cells:,}</strong>.</p>
 <p>Duplicates use every cell, after optional trimming. The first matching record is kept. No names, dates, numbers or currencies were inferred.</p>
-{rules_note}<footer>Source SHA-256<br><code>{e(s.source_sha256)}</code></footer></main></html>'''
+{rules_note}<footer>Source SHA-256<br><code>{e(s.source_sha256)}</code></footer></main></html>'''  # noqa: E501
 
 
 @contextmanager
@@ -166,7 +168,8 @@ def clean(source: Path | str, output: Path | str, *, trim: bool = False,
             def event(record: int, action: str, **details: object) -> None:
                 if review_rules:
                     details["rules_sha256"] = review_rules.sha256
-                audit.write(json.dumps({"source_record": record, "action": action, **details}, ensure_ascii=False) + "\n")
+                audit.write(json.dumps({"source_record": record, "action": action, **details},
+                                       ensure_ascii=False) + "\n")
 
             def quarantine(record: int, row: list[str], reason: str, **details: object) -> None:
                 review_writer.writerow([record, reason, json.dumps(row, ensure_ascii=False)]
@@ -186,7 +189,8 @@ def clean(source: Path | str, output: Path | str, *, trim: bool = False,
                     quarantine(record, row, reason)
                     continue
                 cleaned = [cell.strip() for cell in row] if trim else row
-                changes = [header[i] for i, (before, after) in enumerate(zip(row, cleaned)) if before != after]
+                changes = [header[i] for i, (before, after) in enumerate(zip(row, cleaned, strict=True))
+                           if before != after]
                 if changes:
                     result.changed_cells += len(changes)
                     event(record, "trimmed", columns=changes)
@@ -205,7 +209,8 @@ def clean(source: Path | str, output: Path | str, *, trim: bool = False,
                 result.output_rows += 1
         if result.input_rows != result.output_rows + result.duplicate_rows + result.review_rows:
             raise RuntimeError("Row accounting failed; no output published.")
-        (stage / "summary.json").write_text(json.dumps(asdict(result), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        (stage / "summary.json").write_text(json.dumps(asdict(result), ensure_ascii=False, indent=2) + "\n",
+                                            encoding="utf-8")
         (stage / "report.html").write_text(_report(result), encoding="utf-8")
         # Reserve a new directory. Existing output is never intentionally replaced.
         output.mkdir()
@@ -228,7 +233,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--trim", action="store_true", help="Trim whitespace at cell and header edges")
     parser.add_argument("--deduplicate", action="store_true", help="Keep the first of exact matching rows")
     parser.add_argument("--rules", type=Path, help="Local JSON review rules; checked before deduplication")
-    parser.add_argument("--delimiter", default=",", help="Input delimiter; use 'tab' for TSV. Output is comma-separated.")
+    parser.add_argument("--delimiter", default=",",
+                        help="Input delimiter; use 'tab' for TSV. Output is comma-separated.")
     args = parser.parse_args(argv)
     try:
         result = clean(args.source, args.output, trim=args.trim, deduplicate=args.deduplicate,

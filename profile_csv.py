@@ -21,11 +21,14 @@ MAX_PREVIEW_CELL_CHARS = 80
 MAX_WIDTH_EXAMPLES = 5
 NOTES = [
     "Cell/column counts use only structurally valid records in the scanned portion; malformed rows are excluded.",
-    "Empty means zero characters; whitespace-only means nonempty and str.strip() is empty. Outer whitespace overlaps whitespace-only.",
-    "Formula-like means a =, +, - or @ prefix after leading Unicode whitespace, ASCII controls or U+FEFF; trimming can expose prefixes.",
+    "Empty means zero characters; whitespace-only means nonempty and str.strip() is empty. "
+    "Outer whitespace overlaps whitespace-only.",
+    "Formula-like means a =, +, - or @ prefix after leading Unicode whitespace, ASCII controls or U+FEFF; "
+    "trimming can expose prefixes.",
     "Formula-like counts are warnings, include negative numbers, and never certify spreadsheet safety, even when zero.",
     "Maximum cell length counts Unicode characters, not bytes or visual width.",
-    "A row limit bounds parsed data records, not bytes, time or record size; all source bytes are hashed and text decoding may read ahead.",
+    "A row limit bounds parsed data records, not bytes, time or record size; "
+    "all source bytes are hashed and text decoding may read ahead.",
     "Headers and the source basename are included; raw data values appear only when include_values is true.",
 ]
 
@@ -134,7 +137,7 @@ def profile(source: Path | str, *, delimiter: str = ",",
                 blank += row_width == 0
                 if row_width == width:
                     matching += 1
-                    for counts, value in zip(column_counts, row):
+                    for counts, value in zip(column_counts, row, strict=True):
                         totals.add(value)
                         counts.add(value)
                 else:
@@ -183,7 +186,7 @@ def profile(source: Path | str, *, delimiter: str = ",",
                  "column_counts_denominator_rows": matching},
         "header": {"column_count": width, **header_issues},
         "columns": [{"index": i + 1, "name": name, **asdict(counts)}
-                    for i, (name, counts) in enumerate(zip(header, column_counts))],
+                    for i, (name, counts) in enumerate(zip(header, column_counts, strict=True))],
         "rows": {"matching_width": matching, "short": short, "wide": wide,
                  "malformed_width": short + wide, "blank_records": blank,
                  "max_observed_width": max_width, "missing_cells": missing_cells,
@@ -199,7 +202,10 @@ def profile(source: Path | str, *, delimiter: str = ",",
 
 def render_text(result: dict) -> str:
     """Use JSON string escaping for untrusted names and opt-in sample values."""
-    quote = lambda value: json.dumps(value, ensure_ascii=True)
+
+    def quote(value: object) -> str:
+        return json.dumps(value, ensure_ascii=True)
+
     scan, rows, cells, header = (result[key] for key in ("scan", "rows", "cells", "header"))
     lines = [f"CSV preflight: {quote(result['source'])}",
              "Read-only inspection. No cleanup or output files were created.",
@@ -245,7 +251,8 @@ def render_text(result: dict) -> str:
         lines.append(f"  {column['index']}. {quote(column['name'])}: present={column['present_cells']}, "
                      f"empty={column['empty_cells']}, "
                      f"whitespace-only={column['whitespace_only_cells']}, "
-                     f"outer-whitespace={column['outer_whitespace_cells']}, formula-like={column['formula_like_cells']}, "
+                     f"outer-whitespace={column['outer_whitespace_cells']}, "
+                     f"formula-like={column['formula_like_cells']}, "
                      f"max-characters={column['maximum_cell_length']}")
     if rows["width_examples"]:
         lines.append("Wrong-width examples (CSV record numbers, header = 1):")
@@ -255,7 +262,8 @@ def render_text(result: dict) -> str:
             lines.append(f"  {rows['omitted_width_examples']} more wrong-width records omitted.")
     if result["preview"]:
         values = result["settings"]["include_values"]
-        lines.append("Preview (values explicitly requested):" if values else "Preview (values hidden; use --include-values to show):")
+        lines.append("Preview (values explicitly requested):" if values
+                     else "Preview (values hidden; use --include-values to show):")
         for item in result["preview"]:
             lines.append(f"  Record {item['source_record']}: {item['cell_count']} cells; "
                          f"{'matches' if item['matches_header_width'] else 'differs from'} header width.")
@@ -264,7 +272,8 @@ def render_text(result: dict) -> str:
                 if item["truncated_value_columns"] or item["omitted_cells"]:
                     lines.append(f"    Truncated columns: {quote(item['truncated_value_columns'])}; "
                                  f"omitted cells: {item['omitted_cells']}.")
-    lines.append("Headers and the source basename are included; data values stay private unless --include-values is used.")
+    lines.append("Headers and the source basename are included; "
+                 "data values stay private unless --include-values is used.")
     return "\n".join(lines) + "\n"
 
 
@@ -273,7 +282,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("source", type=Path)
     parser.add_argument("--delimiter", default=",", help="Input delimiter; use 'tab' for TSV. No dialect guessing.")
     parser.add_argument("--max-rows", type=int, default=DEFAULT_MAX_ROWS,
-                        help="Data records to parse; 0 scans the whole file (default). All bytes are hashed regardless.")
+                        help="Data records to parse; 0 scans the whole file (default). "
+                             "All bytes are hashed regardless.")
     parser.add_argument("--format", choices=("text", "json"), default="text", help="Report format on stdout")
     parser.add_argument("--preview-rows", type=int, default=5, help="Preview records, 0 to 20 (default: 5)")
     parser.add_argument("--include-values", action="store_true", help="Opt in to bounded raw data values in previews")

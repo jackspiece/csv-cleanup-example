@@ -16,7 +16,8 @@ from tidy_csv import InputError, read_header
 NOTES = [
     "Only the rules and CSV header are checked. Data rows are not parsed or evaluated; text decoding may read ahead.",
     "Column names match exactly after optional header trimming. Rule names and allowed values are never trimmed.",
-    "No cleanup outputs are created. Passing this check does not mean the data passes its rules or is safe for spreadsheets.",
+    "No cleanup outputs are created. Passing this check does not mean the data passes its rules "
+    "or is safe for spreadsheets.",
     "Basenames and column names are included; data cells and configured allowed values are never included.",
 ]
 
@@ -74,7 +75,8 @@ def check_rules(source: Path | str, rules: Path | str, *, trim: bool = False,
     except InputError as exc:
         return invalid("invalid_header", str(exc))
     except (csv.Error, UnicodeError) as exc:
-        reason = "invalid UTF-8 near the header" if isinstance(exc, UnicodeError) else "invalid CSV quoting or field size in the header"
+        reason = ("invalid UTF-8 near the header" if isinstance(exc, UnicodeError)
+                  else "invalid CSV quoting or field size in the header")
         return invalid("unreadable_header", f"Could not read the CSV header: {reason}.")
     except OSError:
         return invalid("unreadable_source", "Could not read the CSV source.")
@@ -99,7 +101,10 @@ def check_rules(source: Path | str, rules: Path | str, *, trim: bool = False,
 
 def render_text(result: dict) -> str:
     """JSON-escape all untrusted names, including terminal controls."""
-    quote = lambda value: json.dumps(value, ensure_ascii=True)
+
+    def quote(value: object) -> str:
+        return json.dumps(value, ensure_ascii=True)
+
     lines = [
         f"Review-rules preflight: {quote(result['source'])}",
         "Rules and header only. Data rows have NOT been checked.",
